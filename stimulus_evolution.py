@@ -135,9 +135,18 @@ class StimulusEvolver():
                 vmax = np.max(current_stim)
                 ax.imshow(current_stim[:,:,tt], cmap=plt.cm.Greys_r, vmin = vmin, vmax = vmax)
                 ax.set(xticks=[], yticks=[])
+                
+        for tt in range(self.StimulusGenerator.t_dim):
+            ax = fig_handle.add_subplot(grid[pp+1,tt])
+            all_stims = [self.StimulusGenerator.getStimulusFromGenome(x) for x in self.current_generation]
+            mean_stim = np.mean(np.stack(all_stims, axis = 3), axis = 3)
+            vmin = np.min(mean_stim)
+            vmax = np.max(mean_stim)
+            ax.imshow(mean_stim[:,:,tt], cmap=plt.cm.Greys_r, vmin = vmin, vmax = vmax)
+            ax.set(xticks=[], yticks=[]) 
 
         if self.ResponseGenerator.response_type == 'model_DS':
-            ax = fig_handle.add_subplot(grid[pp+1:pp+2,-2:])
+            ax = fig_handle.add_subplot(grid[pp+2:pp+4,-3:])
             ax.imshow(self.ResponseGenerator.xt_RF)
             ax.set_axis_off()
         else:
@@ -253,9 +262,9 @@ class ResponseGenerator():
             x, t = np.meshgrid(np.arange(0,self.x_dim), np.arange(0,self.t_dim))
             xt_tuple = (x,t)
             
-            self.xt_RF = Gauss_2D(xt_tuple, 1, 5, 8, 0.5, 8, np.deg2rad(45))
+            self.xt_RF = Gauss_2D(xt_tuple, 1, 5, 10, 0.5, 8, np.deg2rad(30))
             
-            self.y_RF = Gauss_1D(np.arange(self.y_dim), 2, 4, 2)
+            self.y_RF = Gauss_1D(np.arange(self.y_dim), 2, 4, 0.5)
             
             self.RF = np.swapaxes(np.outer(self.y_RF,self.xt_RF).reshape((self.y_dim,self.t_dim,self.x_dim)),1,2)
 
