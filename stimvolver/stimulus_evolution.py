@@ -36,21 +36,18 @@ class StimulusEvolver():
             threshold = -np.inf
         self.ResponseGenerator = ResponseGenerator(response_type, noise_level, threshold, stim_size) #maps stimulus -> response
         
+    def initializePopulation(self):
+        #generate the initial population
+        self.initial_population = self.StimulusGenerator.getRandomGenes(pop_size = self.pop_size,num_genes = self.StimulusGenerator.genome_size)
+        self.current_generation = self.initial_population.copy()
+        
     def evolve(self, generations):
-        if self.generation_number == 0:
-            #generate the initial population
-            self.initial_population = self.StimulusGenerator.getRandomGenes(pop_size = self.pop_size,num_genes = self.StimulusGenerator.genome_size)
-            
         for gen in range(generations):
             self.doIteration()
             self.generation_number += 1
 
     def doIteration(self):
-        if self.generation_number == 0:
-            parent_population = self.initial_population
-            self.current_generation = parent_population
-        else:
-            parent_population = self.current_generation.copy()
+        parent_population = self.current_generation.copy()
 
         #Get stimuli and responses for each individual in generation
         current_generation_responses = []
@@ -119,7 +116,7 @@ class StimulusEvolver():
         if fig_handle is None:
             fig_handle = plt.figure(figsize=(9,7))
             
-        grid = plt.GridSpec(10, self.StimulusGenerator.t_dim, wspace=0.1, hspace=0.1)
+        grid = plt.GridSpec(10, 20, wspace=0.1, hspace=0.1)
         ax_0 = fig_handle.add_subplot(grid[7:,0:5])
         ax_0.plot(self.fitness)
         ax_0.set_title('Fitness')
@@ -160,6 +157,7 @@ class StimulusEvolver():
             ax.plot(self.ResponseGenerator.temporal_rf)
             ax.set_axis_off()
             
+        fig_handle.savefig('test_results')
             
             
 class StimulusGenerator():
@@ -249,8 +247,8 @@ class ResponseGenerator():
             x, y = np.meshgrid(np.arange(0,self.x_dim), np.arange(0,self.y_dim))
             xy_tuple = (x,y)
         
-            center = Gauss_2D(xy_tuple, 2, 4, 4, 1, 1, 0)
-            surround = Gauss_2D(xy_tuple, 1, 4, 4, 2, 2, 0)
+            center = Gauss_2D(xy_tuple, 2, 4, 4, 1.5, 1.5, 0)
+            surround = Gauss_2D(xy_tuple, 1, 4, 4, 2.5, 2.5, 0)
 
             self.spatial_rf = center - surround
             self.temporal_rf = getTemporalFilter(self.t_dim)
@@ -277,9 +275,9 @@ class ResponseGenerator():
 
 def getTemporalFilter(t_dim):
     on_time = int(t_dim * 0.5)
-    tFilt = np.zeros(shape = t_dim)
-    tFilt[on_time-3:on_time] = -1
-    tFilt[on_time+1:on_time+4] = 1
+    tFilt = np.ones(shape = t_dim)
+#    tFilt[on_time-3:on_time] = -1
+#    tFilt[on_time+1:on_time+4] = 1
 
     return tFilt      
 
