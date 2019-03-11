@@ -14,6 +14,7 @@ from scipy import signal
 import pandas as pd
 import os
 import time
+from datetime import datetime
 
 from fiver import imaging_data
 
@@ -45,7 +46,7 @@ class StimulusEvolver():
         if threshold is None:
             threshold = -np.inf
         self.ResponseGenerator = ResponseGenerator(response_type, noise_level, threshold, stim_size) #maps stimulus -> response
-        
+        self.response_type = response_type
     def initializePopulation(self):
         #generate the initial population
         self.initial_population = self.StimulusGenerator.getRandomGenes(pop_size = self.pop_size,num_genes = self.StimulusGenerator.genome_size)
@@ -236,11 +237,13 @@ class ResponseGenerator():
             self.getModelRF()
             
     def loadResponseData(self):
+        date_dir = datetime.now().isoformat()[:-16].replace('-','')
         cycle_code = ('0000' + str(self.cycle_number))[-5:]
         bot_suffix = '_Cycle' + cycle_code + '-botData'
-        bot_file_path = os.path.join(self.data_directory, self.series_name) + bot_suffix + '.csv'
+        bot_file_path = os.path.join('E:/Max', date_dir, self.series_name, self.series_name + bot_suffix + '.csv')
         
         print('Waiting for files from PV')
+        print(bot_file_path)
         while not os.path.exists(bot_file_path):
             time.sleep(0.5) #wait for the file to appear
         
