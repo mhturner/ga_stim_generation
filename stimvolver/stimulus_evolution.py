@@ -246,20 +246,28 @@ class ResponseGenerator():
         print(bot_file_path)
         while not os.path.exists(bot_file_path):
             time.sleep(0.5) #wait for the file to appear
+
+        time.sleep(10)
+
+        v_rec_suffix = '_Cycle' + cycle_code + '_VoltageRecording_001'
+        stimulus_timing = imaging_data.getEpochAndFrameTiming(os.path.join('E:/Max', date_dir, self.series_name),
+                                                              self.series_name,
+                                                              v_rec_suffix = v_rec_suffix,
+                                                              plot_trace_flag=False)
         
-        stimulus_timing = imaging_data.getEpochAndFrameTiming(self.data_directory, self.series_name, plot_trace_flag=False)
-        
-        self.stimulus_start_times = stimulus_timing['stimulus_start_times'].copy()
+        self.stimulus_start_times = stimulus_timing['stimulus_start_times'].copy() #msec
         self.stimulus_end_times = stimulus_timing['stimulus_end_times'].copy()
             
         #read bot data
         data_frame = pd.read_csv(bot_file_path);
         self.time_step = data_frame.loc[:]['Timestamp']
         self.time_step -= self.time_step[0]
+        self.time_step *= 1e3 #sec->msec
         self.bot_data = data_frame.loc[:]['Region 1']
 
     def getBrukerBotResponse(self, epoch_number):
         baseline_inds = np.where((self.time_step > (self.stimulus_start_times[epoch_number] - self.pre_time)) & (self.time_step <=self.stimulus_start_times[epoch_number]))
+        print(baseline_inds)
         baseline = np.mean(self.bot_data[baseline_inds])
         
         pull_inds = np.where((self.time_step > self.stimulus_start_times[epoch_number]) & (self.time_step <= self.stimulus_end_times[epoch_number]))
