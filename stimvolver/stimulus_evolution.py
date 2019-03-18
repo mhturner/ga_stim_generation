@@ -105,6 +105,7 @@ class StimulusEvolver():
         #update newest generation
         children.append(parent_population[persistent_parents,:])
         self.current_generation = np.vstack(children)
+        np.random.shuffle(self.current_generation)
 
     def getFitness(self, stimulus, response):
         # add a sparsity penalty
@@ -130,12 +131,12 @@ class StimulusEvolver():
         if fig_handle is None:
             fig_handle = plt.figure(figsize=(9,7))
             
-        grid = plt.GridSpec(20, self.StimulusGenerator.t_dim, wspace=0.1, hspace=0.1)
-        ax_0 = fig_handle.add_subplot(grid[7:,0:5])
-        ax_0.plot(self.fitness)
+        grid = plt.GridSpec(10, self.StimulusGenerator.t_dim + 1, wspace=0.1, hspace=0.1)
+        ax_0 = fig_handle.add_subplot(grid[7:,0])
+        ax_0.plot(np.mean(np.vstack(self.fitness), axis = 1))
         ax_0.set_title('Fitness')
-        ax_1 = fig_handle.add_subplot(grid[7:,7:12])
-        ax_1.plot(self.response)
+        ax_1 = fig_handle.add_subplot(grid[7:,1])
+        ax_1.plot(np.mean(np.vstack(self.response), axis = 1))
         ax_1.set_title('Response')
 
         # plot mean stimulus in population
@@ -147,8 +148,6 @@ class StimulusEvolver():
             vmax = np.max(mean_stim)
             ax.imshow(mean_stim[:,:,tt], cmap=plt.cm.Greys_r, vmin = vmin, vmax = vmax)
             ax.set(xticks=[], yticks=[]) 
-
-#        fig_handle.savefig('test_results')
             
             
 class StimulusGenerator():
@@ -241,7 +240,6 @@ class ResponseGenerator():
                 
         response = np.max((self.bot_data[pull_inds] - baseline) / baseline) #dF/F
 
-        print('Pulled epoch number '+ str(epoch_number))
         return response
         
   
