@@ -131,12 +131,12 @@ class StimulusEvolver():
             fig_handle = plt.figure(figsize=(9,7))
             
         grid = plt.GridSpec(20, self.StimulusGenerator.t_dim, wspace=0.1, hspace=0.1)
-#        ax_0 = fig_handle.add_subplot(grid[7:,0:5])
-#        ax_0.plot(self.fitness)
-#        ax_0.set_title('Fitness')
-#        ax_1 = fig_handle.add_subplot(grid[7:,7:12])
-#        ax_1.plot(self.response)
-#        ax_1.set_title('Response')
+        ax_0 = fig_handle.add_subplot(grid[7:,0:5])
+        ax_0.plot(self.fitness)
+        ax_0.set_title('Fitness')
+        ax_1 = fig_handle.add_subplot(grid[7:,7:12])
+        ax_1.plot(self.response)
+        ax_1.set_title('Response')
 
         # plot mean stimulus in population
         for tt in range(self.StimulusGenerator.t_dim):
@@ -210,7 +210,7 @@ class ResponseGenerator():
         while not os.path.exists(bot_file_path):
             time.sleep(0.5) #wait for the file to appear
 
-        time.sleep(10)
+        time.sleep(30) #TODO find smart way to wait for PV processing to finish?
 
         v_rec_suffix = '_Cycle' + cycle_code + '_VoltageRecording_001'
         stimulus_timing = imaging_data.getEpochAndFrameTiming(os.path.join('E:/Max', date_dir, self.series_name),
@@ -227,6 +227,7 @@ class ResponseGenerator():
         self.time_step -= self.time_step[0]
         self.time_step *= 1e3 #sec->msec
         self.bot_data = data_frame.loc[:]['Region 1']
+        print('Data loaded')
 
     def getBrukerBotResponse(self, epoch_number):
         b_inds_1 = np.where(self.time_step > (self.stimulus_start_times[epoch_number] - self.pre_time))[0]
@@ -239,7 +240,8 @@ class ResponseGenerator():
         pull_inds = np.intersect1d(p_inds_1,p_inds_2)
                 
         response = np.max((self.bot_data[pull_inds] - baseline) / baseline) #dF/F
-        
+
+        print('Pulled epoch number '+ str(epoch_number))
         return response
         
   
