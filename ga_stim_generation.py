@@ -1,3 +1,31 @@
+from fiver.utilities import squirrel
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+from stimvolver import stimulus_evolution as se
+
+
+data_directory = '/Users/mhturner/Dropbox/ClandininLab/CurrentData/20190318/'
+
+
+T_series_name = 'TSeries-20190318-004'
+
+
+evolver = se.StimulusEvolver()
+
+
+
+evolver.ResponseGenerator.series_name = T_series_name
+
+
+evolver.ResponseGenerator.cycle_number = 14
+evolver.ResponseGenerator.loadResponseData(data_directory = data_directory)
+
+
+
+
+
+# %%
 from stimvolver import stimulus_evolution as se
 
 

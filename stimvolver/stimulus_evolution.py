@@ -15,6 +15,7 @@ import pandas as pd
 import os
 import time
 from datetime import datetime
+import socket
 
 from fiver import imaging_data
 
@@ -197,22 +198,29 @@ class ResponseGenerator():
         self.response_type = response_type
 
 
-    def loadResponseData(self):
-        date_dir = datetime.now().isoformat()[:-16].replace('-','')
+    def loadResponseData(self, data_directory = None):
+        if data_directory is None:
+            date_dir = datetime.now().isoformat()[:-16].replace('-','')
+            data_directory = os.path.join('E:/Max',date_dir)
+            
         cycle_code = ('0000' + str(self.cycle_number))[-5:]
         bot_suffix = '_Cycle' + cycle_code + '-botData'
         
-        bot_file_path = os.path.join('E:/Max', date_dir, self.series_name, self.series_name + bot_suffix + '.csv')
+        bot_file_path = os.path.join(data_directory, self.series_name)
+        bot_file_name = self.series_name + bot_suffix + '.csv'
+        file_list_name = 'Cycle' + cycle_code + '_Filelist.txt'
                 
-        print('Waiting for files from PV')
-        print(bot_file_path)
-        while not os.path.exists(bot_file_path):
-            time.sleep(0.5) #wait for the file to appear
-
-        time.sleep(30) #TODO find smart way to wait for PV processing to finish?
+        if socket.gethostname() == "USERBRU-I10P5LO": #bruker computer
+            print('Waiting for files from PV')
+            print(bot_file_path)
+            while os.path.exists(os.path.join(bot_file_path, file_list_name)):
+                time.sleep(0.5) #wait for the filelist file to disappear (after PV finishes processing)
+            time.sleep(1)
+        else:
+            pass #analysis computer, file should already be there
 
         v_rec_suffix = '_Cycle' + cycle_code + '_VoltageRecording_001'
-        stimulus_timing = imaging_data.getEpochAndFrameTiming(os.path.join('E:/Max', date_dir, self.series_name),
+        stimulus_timing = imaging_data.getEpochAndFrameTiming(os.path.join(data_directory, self.series_name),
                                                               self.series_name,
                                                               v_rec_suffix = v_rec_suffix,
                                                               plot_trace_flag=False)
@@ -221,7 +229,7 @@ class ResponseGenerator():
         self.stimulus_end_times = stimulus_timing['stimulus_end_times'].copy()
             
         #read bot data
-        data_frame = pd.read_csv(bot_file_path)
+        data_frame = pd.read_csv(os.path.join(bot_file_path, bot_file_name))
         self.time_step = data_frame.loc[:]['Timestamp']
         self.time_step -= self.time_step[0]
         self.time_step *= 1e3 #sec->msec
