@@ -213,9 +213,11 @@ class ResponseGenerator():
         if socket.gethostname() == "USERBRU-I10P5LO": #bruker computer
             print('Waiting for files from PV')
             print(bot_file_path)
+            while not os.path.exists(os.path.join(bot_file_path, bot_file_name)):
+                time.sleep(0.5) #wait for bot file to appear (beginning of PV processing)
             while os.path.exists(os.path.join(bot_file_path, file_list_name)):
                 time.sleep(0.5) #wait for the filelist file to disappear (after PV finishes processing)
-            time.sleep(1)
+            #time.sleep(1)
         else:
             pass #analysis computer, file should already be there
 
