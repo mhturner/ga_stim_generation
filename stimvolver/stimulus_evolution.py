@@ -217,7 +217,6 @@ class ResponseGenerator():
                 time.sleep(0.5) #wait for bot file to appear (beginning of PV processing)
             while os.path.exists(os.path.join(bot_file_path, file_list_name)):
                 time.sleep(0.5) #wait for the filelist file to disappear (after PV finishes processing)
-            #time.sleep(1)
         else:
             pass #analysis computer, file should already be there
 
