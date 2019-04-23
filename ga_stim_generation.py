@@ -1,29 +1,3 @@
-from fiver.utilities import squirrel
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-from stimvolver import stimulus_evolution as se
-
-
-data_directory = '/Users/mhturner/Dropbox/ClandininLab/CurrentData/20190318/'
-
-
-T_series_name = 'TSeries-20190318-004'
-
-
-evolver = se.StimulusEvolver()
-
-
-
-evolver.ResponseGenerator.series_name = T_series_name
-
-
-evolver.ResponseGenerator.cycle_number = 14
-evolver.ResponseGenerator.loadResponseData(data_directory = data_directory)
-
-
-
-
 
 # %%
 from stimvolver import stimulus_evolution as se
@@ -50,19 +24,19 @@ num_populations = 20
 
 fig_handle = plt.figure(figsize=(9,7))
 
-prior_solutions = []
+#prior_solutions = []
 for pop in range(num_populations):
     
     evolver = se.StimulusEvolver(stim_size = (8,12,6), pop_size = 40, num_persistent_parents = 10,
                  mutation_rate = 0.002,
                  stimulus_type = 'ternary_dense', response_type = 'model_MotionEnergy', 
-                 similarity_penalty_weight = 0.5, prior_solutions = prior_solutions,
+                 similarity_penalty_weight = 0.5, prior_solutions = None,
                  sparsity_penalty = 0.2)
     
     evolver.initializePopulation()
     evolver.evolve(500)
     
-    prior_solutions.append(np.mean(evolver.current_generation, axis = 0))
+#    prior_solutions.append(np.mean(evolver.current_generation, axis = 0))
     
     evolver.plotResults(fig_handle, plot_ind = pop)
     

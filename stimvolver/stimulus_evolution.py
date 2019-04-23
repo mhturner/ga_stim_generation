@@ -17,7 +17,7 @@ import time
 from datetime import datetime
 import socket
 
-from fiver import imaging_data
+from visanalysis import imaging_data
 
 class StimulusEvolver():
     def __init__(self, stim_size = (8,10,20), pop_size = 40, num_persistent_parents = 10,
@@ -130,13 +130,13 @@ class StimulusEvolver():
 
     def plotResults(self, fig_handle = None, plot_ind = 0):
         if fig_handle is None:
-            fig_handle = plt.figure(figsize=(9,7))
+            fig_handle = plt.figure(figsize=(6,4))
             
-        grid = plt.GridSpec(10, self.StimulusGenerator.t_dim + 1, wspace=0.1, hspace=0.1)
-        ax_0 = fig_handle.add_subplot(grid[7:,0])
+        grid = plt.GridSpec(3, self.StimulusGenerator.t_dim + 1, wspace=0.1, hspace=0.1)
+        ax_0 = fig_handle.add_subplot(grid[2,0])
         ax_0.plot(np.mean(np.vstack(self.fitness), axis = 1))
         ax_0.set_title('Fitness')
-        ax_1 = fig_handle.add_subplot(grid[7:,1])
+        ax_1 = fig_handle.add_subplot(grid[2,1])
         ax_1.plot(np.mean(np.vstack(self.response), axis = 1))
         ax_1.set_title('Response')
 
@@ -235,7 +235,7 @@ class ResponseGenerator():
         self.time_step -= self.time_step[0]
         self.time_step *= 1e3 #sec->msec
         self.bot_data = data_frame.loc[:]['Region 1']
-        print('Data loaded')
+#        print('Data loaded')
 
     def getBrukerBotResponse(self, epoch_number):
         b_inds_1 = np.where(self.time_step > (self.stimulus_start_times[epoch_number] - self.pre_time))[0]

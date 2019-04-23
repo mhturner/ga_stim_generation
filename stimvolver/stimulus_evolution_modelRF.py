@@ -11,25 +11,19 @@ Individual: genome -> stimulus -> response -> fitness
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
-import pandas as pd
-import os
-import time
-from datetime import datetime
-
-from fiver import imaging_data
 
 import skimage.transform as skt
 from skimage.filters import gabor_kernel
 
 class StimulusEvolver():
-    def __init__(self, stim_size = (8,10,20), pop_size = 40, num_persistent_parents = 10,
+    def __init__(self, stim_size = (8,10,20), pop_size = 40, frac_persistent_parents = 0.25,
                  mutation_rate = 0.02, noise_level = 0.0, threshold = None,
                  sparsity_penalty = 0.0, similarity_penalty_weight = 0.0, prior_solutions = [],
                  stimulus_type = 'ternary_dense', response_type = 'model_RGC'):
 
         #population parameters
         self.pop_size = pop_size #individuals in each generation
-        self.num_persistent_parents = num_persistent_parents #fittest individuals carried over to the next generation
+        self.frac_persistent_parents = frac_persistent_parents #fittest individuals carried over to the next generation
         self.mutation_rate = mutation_rate # at each gene
         
         #mapping from response to fitness
@@ -52,12 +46,17 @@ class StimulusEvolver():
         self.initial_population = self.StimulusGenerator.getRandomGenes(pop_size = self.pop_size,num_genes = self.StimulusGenerator.genome_size)
         self.current_generation = self.initial_population.copy()
         
-    def evolve(self, generations):
+    def evolve(self, generations, mutation_rate = None, pop_size = None):
         for gen in range(generations):
-            self.doIteration()
+            if mutation_rate is None:
+                mutation_rate = self.mutation_rate
+            if pop_size is None:
+                pop_size = self.pop_size
+            
+            self.doIteration(pop_size = pop_size, mutation_rate = mutation_rate)
             self.generation_number += 1
 
-    def doIteration(self):
+    def doIteration(self, pop_size, mutation_rate):
         parent_population = self.current_generation.copy()
 
         #Get stimuli and responses for each individual in generation
@@ -70,7 +69,7 @@ class StimulusEvolver():
             _response = self.ResponseGenerator.getModelResponse(_stimulus) #stimulus -> response
                 
             current_generation_responses.append(_response)
-            _fitness = self.getFitness(_stimulus, _response) # response -> fitness
+            _fitness = self.getFitness(_stimulus, _response, genome) # response -> fitness
             current_generation_fitness.append(_fitness)
 
         self.response.append(current_generation_responses) #keep track of responses and fitness across all generations
@@ -81,13 +80,14 @@ class StimulusEvolver():
         fitness_rankings = np.argsort(fitness_z)[::-1]
         
         if np.std(current_generation_fitness) == 0: #no variability in population
-            prob_parenthood = np.ones(shape = self.pop_size) / self.pop_size
+            prob_parenthood = np.ones(shape = len(parent_population)) / len(parent_population)
         else:
             prob_parenthood = softmax(fitness_z)
         
         #generate children
+        num_persistent_parents = int(self.frac_persistent_parents * pop_size)
         children = []
-        for child_no in range(self.pop_size-self.num_persistent_parents):
+        for child_no in range(pop_size-num_persistent_parents):
             #choose parents
             parents = np.random.choice(len(prob_parenthood), p = prob_parenthood, size = 2, replace = False)
             
@@ -98,19 +98,19 @@ class StimulusEvolver():
             child_genome[parent_2_inherited_genes] = parent_population[parents[1], parent_2_inherited_genes]
         
             #mutate child genes
-            mutated_genes = np.random.choice(self.StimulusGenerator.genome_size, size = int(self.StimulusGenerator.genome_size * self.mutation_rate))
+            mutated_genes = np.random.choice(self.StimulusGenerator.genome_size, size = int(self.StimulusGenerator.genome_size * mutation_rate))
             child_genome[mutated_genes] = self.StimulusGenerator.getRandomGenes(pop_size = 1, num_genes = len(mutated_genes))
     
             children.append(child_genome)
         
         
-        persistent_parents = fitness_rankings[0:self.num_persistent_parents] #take the top n into the next generation
+        persistent_parents = fitness_rankings[0:num_persistent_parents] #take the top n into the next generation
         
         #update newest generation
         children.append(parent_population[persistent_parents,:])
         self.current_generation = np.vstack(children)
 
-    def getFitness(self, stimulus, response):
+    def getFitness(self, stimulus, response, genome):
         # add a sparsity penalty
         sparsity_factor = np.sum(np.abs(stimulus)) / stimulus.size  #fraction of activated pixels
 
@@ -118,8 +118,8 @@ class StimulusEvolver():
         if (self.similarity_penalty_weight > 0) & (len(self.prior_solutions) > 0):
             corr = []
             for sol in self.prior_solutions:
-                norm_factor = np.max(signal.correlate(stimulus.flatten(),stimulus.flatten()))
-                corr.append(np.max(signal.correlate(stimulus.flatten(),sol)) / norm_factor)
+                similarity = np.corrcoef(genome, sol)
+                corr.append(similarity)
             
             similarity_penalty = self.similarity_penalty_weight * np.max(corr)
             
@@ -133,6 +133,7 @@ class StimulusEvolver():
     def plotResults(self, fig_handle = None, plot_ind = 0):
         if fig_handle is None:
             fig_handle = plt.figure(figsize=(9,7))
+            
             
         grid = plt.GridSpec(20, self.StimulusGenerator.t_dim, wspace=0.1, hspace=0.1)
 #        ax_0 = fig_handle.add_subplot(grid[7:,0:5])
@@ -168,12 +169,12 @@ class StimulusEvolver():
                 ax2.set_axis_off()
             else:
                 for tt in range(self.StimulusGenerator.t_dim):
-                    ax = fig_handle.add_subplot(111)
+                    ax = fig_handle.add_subplot(311)
                     vmin = np.min(self.ResponseGenerator.RF)
                     vmax = np.max(self.ResponseGenerator.RF)
-                    ax.imshow(self.ResponseGenerator.RF[0][:,:,tt], cmap=plt.cm.Greys_r, vmin = vmin, vmax = vmax)
+                    ax.imshow(self.ResponseGenerator.RF[:,:,tt], cmap=plt.cm.Greys_r, vmin = vmin, vmax = vmax)
                     ax.set_axis_off()
-                ax = fig_handle.add_subplot(grid[num_rows+2,:])
+                ax = fig_handle.add_subplot(313)
                 ax.plot(self.ResponseGenerator.temporal_rf)
                 ax.set_axis_off()
             
@@ -241,8 +242,7 @@ class ResponseGenerator():
                 resp_1 = np.sum(stimulus * self.RF[0])
                 resp_2 = np.sum(stimulus * self.RF[1])
                 response_sum = (resp_1)**2 + (resp_2)**2
-                
-    
+
             #add noise to response
             response = response_sum + self.noise_level * response_sum * np.random.randn()
     
@@ -285,11 +285,11 @@ class ResponseGenerator():
             x, t = np.meshgrid(np.arange(0,self.x_dim), np.arange(0,self.t_dim))
             xt_tuple = (x,t)
             
-            self.xt_center = Gauss_2D(xt_tuple, 1, 4, 3, 0.5, 6, np.deg2rad(60))
+            self.xt_center = Gauss_2D(xt_tuple, 1, 4, 7, 0.75, 8, np.deg2rad(30))
             self.y_center = Gauss_1D(np.arange(self.y_dim), 2, 4, 0.5)
             self.RF_center = np.swapaxes(np.outer(self.y_center,self.xt_center).reshape((self.y_dim,self.t_dim,self.x_dim)),1,2)
             
-            self.xt_surround = Gauss_2D(xt_tuple, 0.5, 4, 3, 1.0, 12, np.deg2rad(60))
+            self.xt_surround = Gauss_2D(xt_tuple, 0.5, 4, 7, 1.0, 12, np.deg2rad(30))
             self.y_surround = Gauss_1D(np.arange(self.y_dim), 2, 4, 0.5)
             self.RF_surround = np.swapaxes(np.outer(self.y_surround,self.xt_surround).reshape((self.y_dim,self.t_dim,self.x_dim)),1,2)
             
@@ -316,8 +316,8 @@ class ResponseGenerator():
 def getTemporalFilter(t_dim):
     on_time = int(t_dim * 0.5)
     tFilt = np.ones(shape = t_dim)
-#    tFilt[on_time-3:on_time] = -1
-#    tFilt[on_time+1:on_time+4] = 1
+    tFilt[on_time-3:on_time] = -1
+    tFilt[on_time+1:on_time+4] = 1
 
     return tFilt      
 
